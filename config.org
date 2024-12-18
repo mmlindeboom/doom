@@ -157,11 +157,5 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 #+END_SRC
 
 * Magit
-#+BEGIN_SRC emacs-lisp
-    (use-package forge
-  :after magit)
-#+END_SRC
+
 * Dev
-#+BEGIN_SRC emacs-lisp
-(setq web-mode-engines-alist '(("django" . "\\.html\\'"))
-#+END_SRC

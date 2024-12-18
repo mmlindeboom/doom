@@ -115,8 +115,3 @@
 
 (setq shell-file-name "/usr/local/bin/fish"
       vterm-max-scrollback 5)
-
-    (use-package forge
-  :after magit)
-
-(setq web-mode-engines-alist '(("django" . "\\.html\\'"))
