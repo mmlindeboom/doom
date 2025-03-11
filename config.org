@@ -450,15 +450,14 @@ ARGS contains the error details."
 (defun linear-to-org--handle-response (&rest data)
   "Handle successful response from Linear API.
 DATA contains the response data."
-  (let* ((response (plist-get data :data))
-         (response-data (request-response-data (plist-get data :response))))
+  (let* ((response-data (request-response-data (plist-get data :response))))
     (message "Got response from Linear API")
     (if (and response-data
              (alist-get 'data response-data)
              (alist-get 'issues (alist-get 'data response-data))
              (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data))))
         (let ((issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data)))))
-          (if (and issues (not (eq issues [])) (> (length issues) 0))
+          (if (and issues (vectorp issues) (> (length issues) 0))
               (linear-to-org--process-issues issues)
             (message "No issues found in Linear for email %s" linear-to-org-email)))
       (if (alist-get 'errors response-data)
