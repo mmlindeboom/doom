@@ -354,3 +354,256 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 
 (setq tab-width 4)
 #+end_src
+
+* Linear to Org Integration
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle yes
+:END:
+
+#+begin_src emacs-lisp
+(use-package! request
+  :defer t)
+
+(defgroup linear-to-org nil
+  "Settings for Linear to Org integration."
+  :group 'tools)
+
+(defcustom linear-to-org-api-key ""
+  "API key for Linear.app."
+  :type 'string
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-target-file (expand-file-name "linear.org" org-directory)
+  "File to store Linear issues as Org TODO items."
+  :type 'file
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-api-url "https://api.linear.app/graphql"
+  "URL for Linear GraphQL API."
+  :type 'string
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-state-mapping
+  '(("Todo" . "TODO")
+    ("In Progress" . "INPROGRESS")
+    ("Done" . "DONE")
+    ("Canceled" . "CANCELLED"))
+  "Mapping from Linear issue states to Org TODO states."
+  :type '(repeat (cons string string))
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-priority-mapping
+  '(("Urgent" . "A")
+    ("High" . "B")
+    ("Medium" . "C")
+    ("Low" . "D"))
+  "Mapping from Linear priority to Org priority."
+  :type '(repeat (cons string string))
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-include-teams t
+  "Whether to include team information in the Org heading."
+  :type 'boolean
+  :group 'linear-to-org)
+
+(defcustom linear-to-org-include-projects t
+  "Whether to include project information in the Org heading."
+  :type 'boolean
+  :group 'linear-to-org)
+
+(defvar linear-to-org--query
+  "query {
+    issues(first: 100) {
+      nodes {
+        id
+        identifier
+        title
+        description
+        url
+        state {
+          name
+        }
+        priority
+        team {
+          name
+        }
+        project {
+          name
+        }
+        labels {
+          nodes {
+            name
+          }
+        }
+        createdAt
+        updatedAt
+        dueDate
+        assignee {
+          name
+          email
+        }
+      }
+    }
+  }")
+
+(defun linear-to-org--make-request ()
+  "Make a request to the Linear GraphQL API."
+  (unless (string-empty-p linear-to-org-api-key)
+    (request
+     linear-to-org-api-url
+     :type "POST"
+     :headers `(("Content-Type" . "application/json")
+                ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
+     :data (json-encode `(("query" . ,linear-to-org--query)))
+     :parser 'json-read
+     :success #'linear-to-org--handle-response
+     :error #'linear-to-org--handle-error)))
+
+(defun linear-to-org--handle-error (&rest args)
+  "Handle error response from Linear API.
+ARGS contains the error details."
+  (let ((error-data (plist-get args :error-thrown)))
+    (message "Error fetching Linear issues: %S" error-data)))
+
+(defun linear-to-org--handle-response (&rest data)
+  "Handle successful response from Linear API.
+DATA contains the response data."
+  (let* ((response (plist-get data :data))
+         (issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response)))))
+    (if issues
+        (linear-to-org--process-issues issues)
+      (message "No issues found in Linear"))))
+
+(defun linear-to-org--map-state (state)
+  "Map Linear STATE to Org TODO state."
+  (or (cdr (assoc state linear-to-org-state-mapping)) "TODO"))
+
+(defun linear-to-org--map-priority (priority)
+  "Map Linear PRIORITY to Org priority."
+  (let ((priority-name
+         (pcase priority
+           (0 "No priority")
+           (1 "Urgent")
+           (2 "High")
+           (3 "Medium")
+           (4 "Low")
+           (_ "Unknown"))))
+    (cdr (assoc priority-name linear-to-org-priority-mapping))))
+
+(defun linear-to-org--format-date (date-string)
+  "Format DATE-STRING to Org timestamp format."
+  (when date-string
+    (format-time-string
+     "<%Y-%m-%d %a>"
+     (date-to-time date-string))))
+
+(defun linear-to-org--process-issues (issues)
+  "Process Linear ISSUES and convert them to Org TODO items."
+  (with-current-buffer (find-file-noselect linear-to-org-target-file)
+    ;; Clear the file if it exists
+    (erase-buffer)
+    
+    ;; Add file header
+    (insert "#+TITLE: Linear Issues\n")
+    (insert "#+AUTHOR: Linear to Org\n")
+    (insert (format "#+DATE: %s\n\n" (format-time-string "<%Y-%m-%d %a>")))
+    
+    ;; Add all TODO states to the file
+    (let ((states (mapcar #'cdr linear-to-org-state-mapping)))
+      (insert "#+TODO: " (string-join states " ") "\n\n"))
+    
+    ;; Process each issue
+    (dolist (issue issues)
+      (let* ((id (alist-get 'identifier issue))
+             (title (alist-get 'title issue))
+             (state (alist-get 'name (alist-get 'state issue)))
+             (org-state (linear-to-org--map-state state))
+             (priority (alist-get 'priority issue))
+             (org-priority (linear-to-org--map-priority priority))
+             (description (alist-get 'description issue))
+             (url (alist-get 'url issue))
+             (team (alist-get 'name (alist-get 'team issue)))
+             (project (alist-get 'name (alist-get 'project issue)))
+             (labels (mapcar (lambda (label)
+                               (alist-get 'name label))
+                             (alist-get 'nodes (alist-get 'labels issue))))
+             (created-at (linear-to-org--format-date (alist-get 'createdAt issue)))
+             (updated-at (linear-to-org--format-date (alist-get 'updatedAt issue)))
+             (due-date (linear-to-org--format-date (alist-get 'dueDate issue)))
+             (assignee-name (alist-get 'name (alist-get 'assignee issue)))
+             (assignee-email (alist-get 'email (alist-get 'assignee issue))))
+        
+        ;; Create heading with TODO state
+        (insert "* " org-state " " id ": " title)
+        
+        ;; Add priority if available
+        (when org-priority
+          (insert " [#" org-priority "]"))
+        
+        (insert "\n")
+        
+        ;; Add properties drawer
+        (insert ":PROPERTIES:\n")
+        (insert ":ID: " (alist-get 'id issue) "\n")
+        (insert ":LINEAR_ID: " id "\n")
+        (insert ":LINEAR_URL: " url "\n")
+        
+        ;; Add team and project if configured
+        (when (and linear-to-org-include-teams team)
+          (insert ":TEAM: " team "\n"))
+        
+        (when (and linear-to-org-include-projects project)
+          (insert ":PROJECT: " project "\n"))
+        
+        ;; Add dates
+        (when created-at
+          (insert ":CREATED: " created-at "\n"))
+        
+        (when updated-at
+          (insert ":UPDATED: " updated-at "\n"))
+        
+        (when due-date
+          (insert ":DEADLINE: " due-date "\n"))
+        
+        ;; Add assignee if available
+        (when assignee-name
+          (insert ":ASSIGNEE: " assignee-name)
+          (when assignee-email
+            (insert " <" assignee-email ">"))
+          (insert "\n"))
+        
+        ;; Add labels if available
+        (when labels
+          (insert ":TAGS: " (string-join labels " ") "\n"))
+        
+        (insert ":END:\n\n")
+        
+        ;; Add description if available
+        (when description
+          (insert description "\n\n"))
+        
+        ;; Add link to Linear
+        (insert "Linear URL: " url "\n\n")))
+    
+    ;; Save the buffer
+    (save-buffer)
+    (message "Linear issues imported to %s" linear-to-org-target-file)))
+
+(defun linear-to-org-fetch-issues ()
+  "Fetch issues from Linear and convert them to Org TODO items."
+  (interactive)
+  (if (string-empty-p linear-to-org-api-key)
+      (message "Please set linear-to-org-api-key first")
+    (message "Fetching issues from Linear...")
+    (linear-to-org--make-request)))
+
+(defun linear-to-org-set-api-key (key)
+  "Set the Linear API KEY."
+  (interactive "sEnter Linear API key: ")
+  (setq linear-to-org-api-key key)
+  (message "Linear API key set"))
+
+;; Add keybinding for Linear to Org
+(map! :leader
+      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues)
+#+end_src
