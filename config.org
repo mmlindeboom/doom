@@ -102,6 +102,8 @@
       display-line-numbers-type t
       )
 (doom-modeline-mode 1)
+(set-face-background 'mode-line "#8c1eff")
+(setq doom-modeline-major-mode-color-icon t)
 #+END_SRC
 
 * Key Bindings
@@ -297,20 +299,20 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   (setq enable-recursive-minibuffers t)
   :config
   (ivy-mode))
-(use-package all-the-icons-ivy-rich
-  :ensure t
-  :init (all-the-icons-ivy-rich-mode 1))
-(use-package ivy-rich
-  :after ivy
-  :ensure t
-  :init (ivy-rich-mode 1) ;; this gets us descriptions in M-x.
-  :custom
-  (ivy-virtual-abbreviate 'full
-   ivy-rich-switch-buffer-align-virtual-buffer t
-   ivy-rich-path-style 'abbrev)
-  :config
-  (ivy-set-display-transformer 'ivy-switch-buffer
-                               'ivy-rich-switch-buffer-transformer))
+;; (use-package all-the-icons-ivy-rich
+;;   :ensure t
+;;   :init (all-the-icons-ivy-rich-mode 1))
+;; (use-package ivy-rich
+;;   :after ivy
+;;   :ensure t
+;;   :init (ivy-rich-mode 1) ;; this gets us descriptions in M-x.
+;;   :custom
+;;   (ivy-virtual-abbreviate 'full
+;;    ivy-rich-switch-buffer-align-virtual-buffer t
+;;    ivy-rich-path-style 'abbrev)
+;;   :config
+;;   (ivy-set-display-transformer 'ivy-switch-buffer
+;;                                'ivy-rich-switch-buffer-transformer))
 ;; (require 'ivy)
 ;; (require 'counsel)
 ;; (require 'swiper)
@@ -332,7 +334,19 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 :END:
 
 #+begin_src emacs-lisp
-
+(use-package aider
+  :config
+  ;; For latest claude sonnet model
+  (setq aider-args '("--model" "sonnet"))
+  (setenv "ANTHROPIC_API_KEY" "REDACTED_ANTHROPIC_KEY")
+  ;; Or chatgpt model
+  ;; (setq aider-args '("--model" "o3-mini"))
+  ;; (setenv "OPENAI_API_KEY" <your-openai-api-key>)
+  ;; Or use your personal config file
+  ;; (setq aider-args `("--config" ,(expand-file-name "~/.aider.conf.yml")))
+  ;; ;;
+  ;; Optional: Set a key binding for the transient menu
+  (global-set-key (kbd "C-c a") 'aider-transient-menu))
 (use-package python-black
   :demand t
   :after python
