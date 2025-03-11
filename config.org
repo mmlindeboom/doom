@@ -417,13 +417,14 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :group 'linear-to-org)
 
 (defvar linear-to-org--query
-  "{\"query\": \"query { issues(first: 10) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
+  "query { issues(first: 10) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }")
 
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
   (unless (string-empty-p linear-to-org-api-key)
     (message "Sending request to Linear API...")
-    (let ((query (format "query { issues(first: 100, filter: {assignee: {name: {eq: \\\"%s\\\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }" linear-to-org-username)))
+    (let ((query (format "query { issues(first: 100, filter: {assignee: {name: {eq: \"%s\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }" linear-to-org-username)))
+      (message "Using query: %s" query)
       (request
        linear-to-org-api-url
        :type "POST"
@@ -618,24 +619,25 @@ DATA contains the response data."
   (interactive)
   (unless (string-empty-p linear-to-org-api-key)
     (message "Sending test request to Linear API...")
-    (request
-     linear-to-org-api-url
-     :type "POST"
-     :headers `(("Content-Type" . "application/json")
-                ("Authorization" . ,linear-to-org-api-key))
-     :data (json-encode `(("query" . "query { viewer { id name } }")))
-     :parser 'json-read
-     :complete (cl-function
-                (lambda (&key data response error-thrown &allow-other-keys)
-                  (if error-thrown
-                      (message "Got error: %S" error-thrown)
-                    (message "Got response: %s" (pp-to-string data))))))))
+    (let ((query "query { viewer { id name } }"))
+      (message "Using query: %s" query)
+      (request
+       linear-to-org-api-url
+       :type "POST"
+       :headers `(("Content-Type" . "application/json")
+                  ("Authorization" . ,linear-to-org-api-key))
+       :data (json-encode `(("query" . ,query)))
+       :parser 'json-read
+       :complete (cl-function
+                  (lambda (&key data response error-thrown &allow-other-keys)
+                    (if error-thrown
+                        (message "Got error: %S" error-thrown)
+                      (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
 (map! :leader
       :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
-      ;; :desc "Set Linear username" "o L u" #'linear-to-org-set-username
-      ;; :desc "Set Linear API key" "o l k" #'linear-to-org-set-api-key
-      ;; :desc "Debug Linear API" "o l d" #'linear-to-org-debug-request
-      )
+      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
+      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
+      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
 #+end_src
