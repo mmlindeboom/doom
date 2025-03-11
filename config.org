@@ -425,7 +425,7 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
        linear-to-org-api-url
        :type "POST"
        :headers `(("Content-Type" . "application/json")
-                  ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
+                  ("Authorization" . ,linear-to-org-api-key))
        :data request-data
        :parser 'json-read
        :success #'linear-to-org--handle-response
@@ -602,7 +602,7 @@ DATA contains the response data."
      linear-to-org-api-url
      :type "POST"
      :headers `(("Content-Type" . "application/json")
-                ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
+                ("Authorization" . ,linear-to-org-api-key))
      :data "{\"query\": \"{ viewer { id name } }\"}"
      :parser 'json-read
      :complete (cl-function
