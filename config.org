@@ -458,7 +458,9 @@ DATA contains the response data."
              (alist-get 'issues (alist-get 'data response-data))
              (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data))))
         (let ((issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data)))))
-          (linear-to-org--process-issues issues))
+          (if (and issues (not (eq issues [])) (> (length issues) 0))
+              (linear-to-org--process-issues issues)
+            (message "No issues found in Linear for user %s" linear-to-org-username)))
       (if (alist-get 'errors response-data)
           (message "Linear API returned errors: %s"
                    (pp-to-string (alist-get 'errors response-data)))
@@ -533,7 +535,10 @@ DATA contains the response data."
                         (alist-get 'name (alist-get 'project issue))))
              (label-nodes (when (alist-get 'labels issue)
                             (alist-get 'nodes (alist-get 'labels issue))))
-             (labels (when (and label-nodes (listp label-nodes) (not (eq label-nodes [])))
+             (labels (when (and label-nodes 
+                               (listp label-nodes) 
+                               (not (eq label-nodes [])) 
+                               (> (length label-nodes) 0))
                        (mapcar (lambda (label)
                                  (alist-get 'name label))
                                label-nodes)))
@@ -645,12 +650,12 @@ DATA contains the response data."
                       (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
-;; (map! :leader
-;;       (:prefix ("ol" . "Linear")
-;;        :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
-;;        :desc "Set Linear username" "u" #'linear-to-org-set-username
-;;        :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
-;;        :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
+(map! :leader
+      (:prefix ("ol" . "Linear")
+       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+       :desc "Set Linear username" "u" #'linear-to-org-set-username
+       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
 
 #+RESULTS:
