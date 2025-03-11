@@ -417,7 +417,7 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :group 'linear-to-org)
 
 (defvar linear-to-org--query
-  "{\"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
+  "{\"query\": \"query { issues(first: 10) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
 
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
@@ -452,16 +452,16 @@ DATA contains the response data."
   (let* ((response (plist-get data :data))
          (response-data (request-response-data (plist-get data :response))))
     (message "Got response from Linear API")
-    (if (and response-data 
+    (if (and response-data
              (alist-get 'data response-data)
              (alist-get 'issues (alist-get 'data response-data))
              (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data))))
         (let ((issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data)))))
           (linear-to-org--process-issues issues))
       (if (alist-get 'errors response-data)
-          (message "Linear API returned errors: %s" 
+          (message "Linear API returned errors: %s"
                    (pp-to-string (alist-get 'errors response-data)))
-        (message "No issues found in Linear or unexpected response format: %s" 
+        (message "No issues found in Linear or unexpected response format: %s"
                  (pp-to-string response-data))))))
 
 (defun linear-to-org--map-state (state)
@@ -492,23 +492,23 @@ DATA contains the response data."
   ;; Make sure the org directory exists
   (unless (file-exists-p org-directory)
     (make-directory org-directory t))
-  
+
   ;; Ensure the target file path is absolute
   (let ((target-file (if (file-name-absolute-p linear-to-org-target-file)
                          linear-to-org-target-file
                        (expand-file-name linear-to-org-target-file))))
-    
+
     (message "Writing Linear issues to %s" target-file)
-    
+
     (with-current-buffer (find-file-noselect target-file)
       ;; Clear the file if it exists
       (erase-buffer)
-      
+
       ;; Add file header
       (insert "#+TITLE: Linear Issues\n")
       (insert "#+AUTHOR: Linear to Org\n")
       (insert (format "#+DATE: %s\n\n" (format-time-string "<%Y-%m-%d %a>")))
-      
+
       ;; Add all TODO states to the file
       (let ((states (mapcar #'cdr linear-to-org-state-mapping)))
         (insert "#+TODO: " (string-join states " ") "\n\n"))
@@ -634,7 +634,8 @@ DATA contains the response data."
 ;; Add keybindings for Linear to Org
 (map! :leader
       :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
-      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
-      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
-      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
+      ;; :desc "Set Linear username" "o L u" #'linear-to-org-set-username
+      ;; :desc "Set Linear API key" "o l k" #'linear-to-org-set-api-key
+      ;; :desc "Debug Linear API" "o l d" #'linear-to-org-debug-request
+      )
 #+end_src
