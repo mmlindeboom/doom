@@ -542,7 +542,7 @@ DATA contains the response data."
                               (alist-get 'name (alist-get 'assignee issue))))
              (assignee-email (when (alist-get 'assignee issue)
                                (alist-get 'email (alist-get 'assignee issue)))))
-        
+
         ;; Try to safely extract labels
         (when-let* ((label-data (alist-get 'labels issue))
                     (nodes (alist-get 'nodes label-data)))
@@ -654,12 +654,12 @@ DATA contains the response data."
                       (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
-(map! :leader
-      (:prefix ("ol" . "Linear")
-       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
-       :desc "Set Linear email" "e" #'linear-to-org-set-email
-       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
-       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
+;; (map! :leader
+;;       (:prefix ("ol" . "Linear")
+;;        :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+;;        :desc "Set Linear email" "e" #'linear-to-org-set-email
+;;        :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+;;        :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
 
 #+RESULTS:
