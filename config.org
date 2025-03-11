@@ -531,10 +531,12 @@ DATA contains the response data."
                      (alist-get 'name (alist-get 'team issue))))
              (project (when (alist-get 'project issue)
                         (alist-get 'name (alist-get 'project issue))))
-             (labels (when (alist-get 'labels issue)
+             (label-nodes (when (alist-get 'labels issue)
+                            (alist-get 'nodes (alist-get 'labels issue))))
+             (labels (when (and label-nodes (listp label-nodes) (not (eq label-nodes [])))
                        (mapcar (lambda (label)
                                  (alist-get 'name label))
-                               (alist-get 'nodes (alist-get 'labels issue)))))
+                               label-nodes)))
              (created-at (linear-to-org--format-date (alist-get 'createdAt issue)))
              (updated-at (linear-to-org--format-date (alist-get 'updatedAt issue)))
              (due-date (linear-to-org--format-date (alist-get 'dueDate issue)))
@@ -583,7 +585,7 @@ DATA contains the response data."
           (insert "\n"))
 
         ;; Add labels if available
-        (when labels
+        (when (and labels (not (seq-empty-p labels)))
           (insert ":TAGS: " (string-join labels " ") "\n"))
 
         (insert ":END:\n\n")
@@ -643,11 +645,12 @@ DATA contains the response data."
                       (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
-;; (map! :leader
-;;       :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
-;;       :desc "Set Linear username" "o L u" #'linear-to-org-set-username
-;;       :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
-;;       :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
+(map! :leader
+      (:prefix ("ol" . "Linear")
+       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+       :desc "Set Linear username" "u" #'linear-to-org-set-username
+       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
 
 #+RESULTS:
