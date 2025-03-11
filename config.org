@@ -644,8 +644,9 @@ DATA contains the response data."
 
 ;; Add keybindings for Linear to Org
 (map! :leader
-      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
-      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
-      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
-      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
+      (:prefix ("ol" . "Linear")
+       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+       :desc "Set Linear username" "u" #'linear-to-org-set-username
+       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
