@@ -411,22 +411,28 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :type 'boolean
   :group 'linear-to-org)
 
+(defcustom linear-to-org-username "mattlindeboom"
+  "Username to filter Linear issues by assignee."
+  :type 'string
+  :group 'linear-to-org)
+
 (defvar linear-to-org--query
-  "{\"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
+  "{\"query\": \"query { issues(first: 100, filter: {assignee: {name: {eq: \\\"mattlindeboom\\\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
 
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
   (unless (string-empty-p linear-to-org-api-key)
     (message "Sending request to Linear API...")
-    (request
-     linear-to-org-api-url
-     :type "POST"
-     :headers `(("Content-Type" . "application/json")
-                ("Authorization" . ,linear-to-org-api-key))
-     :data (json-encode `(("query" . "query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }")))
-     :parser 'json-read
-     :success #'linear-to-org--handle-response
-     :error #'linear-to-org--handle-error)))
+    (let ((query (format "query { issues(first: 100, filter: {assignee: {name: {eq: \\\"%s\\\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }" linear-to-org-username)))
+      (request
+       linear-to-org-api-url
+       :type "POST"
+       :headers `(("Content-Type" . "application/json")
+                  ("Authorization" . ,linear-to-org-api-key))
+       :data (json-encode `(("query" . ,query)))
+       :parser 'json-read
+       :success #'linear-to-org--handle-response
+       :error #'linear-to-org--handle-error))))
 
 (defun linear-to-org--handle-error (&rest args)
   "Handle error response from Linear API.
@@ -587,6 +593,12 @@ DATA contains the response data."
   (setq linear-to-org-api-key key)
   (message "Linear API key set"))
 
+(defun linear-to-org-set-username (username)
+  "Set the Linear USERNAME to filter issues by."
+  (interactive "sEnter Linear username: ")
+  (setq linear-to-org-username username)
+  (message "Linear username set to %s" username))
+
 (setq linear-to-org-api-key "REDACTED_LINEAR_KEY")
 
 ;; Add a debug function to help troubleshoot API issues
@@ -600,7 +612,7 @@ DATA contains the response data."
      :type "POST"
      :headers `(("Content-Type" . "application/json")
                 ("Authorization" . ,linear-to-org-api-key))
-     :data (json-encode `(("query" . "query { viewer { id name } }")))
+     :data (json-encode `(("query" . ,(format "query { viewer { id name } issues(first: 5, filter: {assignee: {name: {eq: \\\"%s\\\"}}}) { nodes { identifier title } } }" linear-to-org-username))))
      :parser 'json-read
      :complete (cl-function
                 (lambda (&key data response error-thrown &allow-other-keys)
@@ -608,7 +620,10 @@ DATA contains the response data."
                       (message "Got error: %S" error-thrown)
                     (message "Got response: %s" (pp-to-string data))))))))
 
-;; Add keybinding for Linear to Org
+;; Add keybindings for Linear to Org
 (map! :leader
-      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues)
+      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
+      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
+      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
+      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
 #+end_src
