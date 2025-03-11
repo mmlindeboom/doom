@@ -412,67 +412,54 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :group 'linear-to-org)
 
 (defvar linear-to-org--query
-  "query {
-    issues(first: 100) {
-      nodes {
-        id
-        identifier
-        title
-        description
-        url
-        state {
-          name
-        }
-        priority
-        team {
-          name
-        }
-        project {
-          name
-        }
-        labels {
-          nodes {
-            name
-          }
-        }
-        createdAt
-        updatedAt
-        dueDate
-        assignee {
-          name
-          email
-        }
-      }
-    }
+  "{
+    \"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"
   }")
 
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
   (unless (string-empty-p linear-to-org-api-key)
-    (request
-     linear-to-org-api-url
-     :type "POST"
-     :headers `(("Content-Type" . "application/json")
-                ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
-     :data (json-encode `(("query" . ,linear-to-org--query)))
-     :parser 'json-read
-     :success #'linear-to-org--handle-response
-     :error #'linear-to-org--handle-error)))
+    (let ((request-data linear-to-org--query))
+      (message "Sending request to Linear API...")
+      (request
+       linear-to-org-api-url
+       :type "POST"
+       :headers `(("Content-Type" . "application/json")
+                  ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
+       :data request-data
+       :parser 'json-read
+       :success #'linear-to-org--handle-response
+       :error #'linear-to-org--handle-error))))
 
 (defun linear-to-org--handle-error (&rest args)
   "Handle error response from Linear API.
 ARGS contains the error details."
-  (let ((error-data (plist-get args :error-thrown)))
-    (message "Error fetching Linear issues: %S" error-data)))
+  (let* ((error-data (plist-get args :error-thrown))
+         (response (plist-get args :response))
+         (status-code (request-response-status-code response))
+         (error-msg (request-response-error-thrown response))
+         (data (request-response-data response)))
+    (message "Linear API Error: %s (HTTP %s)" error-msg status-code)
+    (when data
+      (message "Response data: %s" (pp-to-string data)))))
 
 (defun linear-to-org--handle-response (&rest data)
   "Handle successful response from Linear API.
 DATA contains the response data."
   (let* ((response (plist-get data :data))
-         (issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response)))))
-    (if issues
-        (linear-to-org--process-issues issues)
-      (message "No issues found in Linear"))))
+         (response-data (request-response-data (plist-get data :response))))
+    (message "Got response from Linear API")
+    (if (and response-data 
+             (alist-get 'data response-data)
+             (alist-get 'issues (alist-get 'data response-data))
+             (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data))))
+        (let ((issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data)))))
+          (linear-to-org--process-issues issues))
+      (if (alist-get 'errors response-data)
+          (message "Linear API returned errors: %s" 
+                   (pp-to-string (alist-get 'errors response-data)))
+        (message "No issues found in Linear or unexpected response format: %s" 
+                 (pp-to-string response-data))))))
 
 (defun linear-to-org--map-state (state)
   "Map Linear STATE to Org TODO state."
@@ -604,6 +591,25 @@ DATA contains the response data."
   (message "Linear API key set"))
 
 (setq linear-to-org-api-key "REDACTED_LINEAR_KEY")
+
+;; Add a debug function to help troubleshoot API issues
+(defun linear-to-org-debug-request ()
+  "Make a test request to the Linear API and show the raw response."
+  (interactive)
+  (unless (string-empty-p linear-to-org-api-key)
+    (message "Sending test request to Linear API...")
+    (request
+     linear-to-org-api-url
+     :type "POST"
+     :headers `(("Content-Type" . "application/json")
+                ("Authorization" . ,(concat "Bearer " linear-to-org-api-key)))
+     :data "{\"query\": \"{ viewer { id name } }\"}"
+     :parser 'json-read
+     :complete (cl-function
+                (lambda (&key data response error-thrown &allow-other-keys)
+                  (if error-thrown
+                      (message "Got error: %S" error-thrown)
+                    (message "Got response: %s" (pp-to-string data))))))))
 
 ;; Add keybinding for Linear to Org
 (map! :leader
