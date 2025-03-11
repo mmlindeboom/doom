@@ -533,16 +533,8 @@ DATA contains the response data."
                      (alist-get 'name (alist-get 'team issue))))
              (project (when (alist-get 'project issue)
                         (alist-get 'name (alist-get 'project issue))))
-             (label-nodes (when (alist-get 'labels issue)
-                            (alist-get 'nodes (alist-get 'labels issue))))
-             (labels (when (and label-nodes
-                               (not (eq label-nodes 'nil))
-                               (not (eq label-nodes [])))
-                       (if (vectorp label-nodes)
-                           (seq-map (lambda (label)
-                                     (alist-get 'name label))
-                                   label-nodes)
-                         nil)))
+             ;; Safely handle labels
+             (labels nil)
              (created-at (linear-to-org--format-date (alist-get 'createdAt issue)))
              (updated-at (linear-to-org--format-date (alist-get 'updatedAt issue)))
              (due-date (linear-to-org--format-date (alist-get 'dueDate issue)))
@@ -550,6 +542,17 @@ DATA contains the response data."
                               (alist-get 'name (alist-get 'assignee issue))))
              (assignee-email (when (alist-get 'assignee issue)
                                (alist-get 'email (alist-get 'assignee issue)))))
+        
+        ;; Try to safely extract labels
+        (when-let* ((label-data (alist-get 'labels issue))
+                    (nodes (alist-get 'nodes label-data)))
+          (unless (eq nodes [])
+            (when (vectorp nodes)
+              (setq labels
+                    (seq-filter #'stringp
+                                (seq-map (lambda (label)
+                                           (alist-get 'name label))
+                                         nodes))))))
 
         ;; Create heading with TODO state
         (insert "* " org-state " " id ": " title)
@@ -591,7 +594,7 @@ DATA contains the response data."
           (insert "\n"))
 
         ;; Add labels if available
-        (when (and labels (listp labels) (not (seq-empty-p labels)))
+        (when (and labels (not (seq-empty-p labels)))
           (insert ":TAGS: " (string-join labels " ") "\n"))
 
         (insert ":END:\n\n")
@@ -651,12 +654,12 @@ DATA contains the response data."
                       (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
-;; (map! :leader
-;;       (:prefix ("ol" . "Linear")
-;;        :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
-;;        :desc "Set Linear email" "e" #'linear-to-org-set-email
-;;        :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
-;;        :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
+(map! :leader
+      (:prefix ("ol" . "Linear")
+       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+       :desc "Set Linear email" "e" #'linear-to-org-set-email
+       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
 
 #+RESULTS:
