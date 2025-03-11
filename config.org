@@ -411,6 +411,11 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :type 'boolean
   :group 'linear-to-org)
 
+(defcustom linear-to-org-username "mattlindeboom"
+  "Username to filter Linear issues by assignee."
+  :type 'string
+  :group 'linear-to-org)
+
 (defvar linear-to-org--query
   "{\"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
 
@@ -418,15 +423,16 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   "Make a request to the Linear GraphQL API."
   (unless (string-empty-p linear-to-org-api-key)
     (message "Sending request to Linear API...")
-    (request
-     linear-to-org-api-url
-     :type "POST"
-     :headers `(("Content-Type" . "application/json")
-                ("Authorization" . ,linear-to-org-api-key))
-     :data (json-encode `(("query" . "query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }")))
-     :parser 'json-read
-     :success #'linear-to-org--handle-response
-     :error #'linear-to-org--handle-error)))
+    (let ((query (format "query { issues(first: 100, filter: {assignee: {name: {eq: \\\"%s\\\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }" linear-to-org-username)))
+      (request
+       linear-to-org-api-url
+       :type "POST"
+       :headers `(("Content-Type" . "application/json")
+                  ("Authorization" . ,linear-to-org-api-key))
+       :data (json-encode `(("query" . ,query)))
+       :parser 'json-read
+       :success #'linear-to-org--handle-response
+       :error #'linear-to-org--handle-error))))
 
 (defun linear-to-org--handle-error (&rest args)
   "Handle error response from Linear API.
@@ -483,18 +489,29 @@ DATA contains the response data."
 
 (defun linear-to-org--process-issues (issues)
   "Process Linear ISSUES and convert them to Org TODO items."
-  (with-current-buffer (find-file-noselect linear-to-org-target-file)
-    ;; Clear the file if it exists
-    (erase-buffer)
-
-    ;; Add file header
-    (insert "#+TITLE: Linear Issues\n")
-    (insert "#+AUTHOR: Linear to Org\n")
-    (insert (format "#+DATE: %s\n\n" (format-time-string "<%Y-%m-%d %a>")))
-
-    ;; Add all TODO states to the file
-    (let ((states (mapcar #'cdr linear-to-org-state-mapping)))
-      (insert "#+TODO: " (string-join states " ") "\n\n"))
+  ;; Make sure the org directory exists
+  (unless (file-exists-p org-directory)
+    (make-directory org-directory t))
+  
+  ;; Ensure the target file path is absolute
+  (let ((target-file (if (file-name-absolute-p linear-to-org-target-file)
+                         linear-to-org-target-file
+                       (expand-file-name linear-to-org-target-file))))
+    
+    (message "Writing Linear issues to %s" target-file)
+    
+    (with-current-buffer (find-file-noselect target-file)
+      ;; Clear the file if it exists
+      (erase-buffer)
+      
+      ;; Add file header
+      (insert "#+TITLE: Linear Issues\n")
+      (insert "#+AUTHOR: Linear to Org\n")
+      (insert (format "#+DATE: %s\n\n" (format-time-string "<%Y-%m-%d %a>")))
+      
+      ;; Add all TODO states to the file
+      (let ((states (mapcar #'cdr linear-to-org-state-mapping)))
+        (insert "#+TODO: " (string-join states " ") "\n\n"))
 
     ;; Process each issue
     (dolist (issue issues)
@@ -569,9 +586,9 @@ DATA contains the response data."
         ;; Add link to Linear
         (insert "Linear URL: " url "\n\n")))
 
-    ;; Save the buffer
-    (save-buffer)
-    (message "Linear issues imported to %s" linear-to-org-target-file)))
+      ;; Save the buffer
+      (save-buffer)
+      (message "Linear issues imported to %s" target-file))))
 
 (defun linear-to-org-fetch-issues ()
   "Fetch issues from Linear and convert them to Org TODO items."
@@ -586,6 +603,12 @@ DATA contains the response data."
   (interactive "sEnter Linear API key: ")
   (setq linear-to-org-api-key key)
   (message "Linear API key set"))
+
+(defun linear-to-org-set-username (username)
+  "Set the Linear USERNAME to filter issues by."
+  (interactive "sEnter Linear username: ")
+  (setq linear-to-org-username username)
+  (message "Linear username set to %s" username))
 
 (setq linear-to-org-api-key "REDACTED_LINEAR_KEY")
 
@@ -608,7 +631,10 @@ DATA contains the response data."
                       (message "Got error: %S" error-thrown)
                     (message "Got response: %s" (pp-to-string data))))))))
 
-;; Add keybinding for Linear to Org
+;; Add keybindings for Linear to Org
 (map! :leader
-      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues)
+      :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
+      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
+      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
+      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
 #+end_src
