@@ -490,6 +490,8 @@ DATA contains the response data."
 
 (defun linear-to-org--process-issues (issues)
   "Process Linear ISSUES and convert them to Org TODO items."
+  (message "Processing %d issues from Linear" (length issues))
+  
   ;; Make sure the org directory exists
   (unless (file-exists-p org-directory)
     (make-directory org-directory t))
@@ -518,22 +520,28 @@ DATA contains the response data."
     (dolist (issue issues)
       (let* ((id (alist-get 'identifier issue))
              (title (alist-get 'title issue))
-             (state (alist-get 'name (alist-get 'state issue)))
-             (org-state (linear-to-org--map-state state))
+             (state (when (alist-get 'state issue)
+                      (alist-get 'name (alist-get 'state issue))))
+             (org-state (linear-to-org--map-state (or state "Todo")))
              (priority (alist-get 'priority issue))
              (org-priority (linear-to-org--map-priority priority))
              (description (alist-get 'description issue))
              (url (alist-get 'url issue))
-             (team (alist-get 'name (alist-get 'team issue)))
-             (project (alist-get 'name (alist-get 'project issue)))
-             (labels (mapcar (lambda (label)
-                               (alist-get 'name label))
-                             (alist-get 'nodes (alist-get 'labels issue))))
+             (team (when (alist-get 'team issue)
+                     (alist-get 'name (alist-get 'team issue))))
+             (project (when (alist-get 'project issue)
+                        (alist-get 'name (alist-get 'project issue))))
+             (labels (when (alist-get 'labels issue)
+                       (mapcar (lambda (label)
+                                 (alist-get 'name label))
+                               (alist-get 'nodes (alist-get 'labels issue)))))
              (created-at (linear-to-org--format-date (alist-get 'createdAt issue)))
              (updated-at (linear-to-org--format-date (alist-get 'updatedAt issue)))
              (due-date (linear-to-org--format-date (alist-get 'dueDate issue)))
-             (assignee-name (alist-get 'name (alist-get 'assignee issue)))
-             (assignee-email (alist-get 'email (alist-get 'assignee issue))))
+             (assignee-name (when (alist-get 'assignee issue)
+                              (alist-get 'name (alist-get 'assignee issue))))
+             (assignee-email (when (alist-get 'assignee issue)
+                               (alist-get 'email (alist-get 'assignee issue)))))
 
         ;; Create heading with TODO state
         (insert "* " org-state " " id ": " title)
@@ -637,8 +645,7 @@ DATA contains the response data."
 ;; Add keybindings for Linear to Org
 (map! :leader
       :desc "Fetch Linear issues" "o l" #'linear-to-org-fetch-issues
-      ;; :desc "Set Linear username" "o L u" #'linear-to-org-set-username
-      ;; :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
-      ;; :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request
-      )
+      :desc "Set Linear username" "o L u" #'linear-to-org-set-username
+      :desc "Set Linear API key" "o L k" #'linear-to-org-set-api-key
+      :desc "Debug Linear API" "o L d" #'linear-to-org-debug-request)
 #+end_src
