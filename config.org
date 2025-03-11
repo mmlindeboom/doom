@@ -417,17 +417,16 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
   (unless (string-empty-p linear-to-org-api-key)
-    (let ((request-data linear-to-org--query))
-      (message "Sending request to Linear API...")
-      (request
-       linear-to-org-api-url
-       :type "POST"
-       :headers `(("Content-Type" . "application/json")
-                  ("Authorization" . ,linear-to-org-api-key))
-       :data request-data
-       :parser 'json-read
-       :success #'linear-to-org--handle-response
-       :error #'linear-to-org--handle-error))))
+    (message "Sending request to Linear API...")
+    (request
+     linear-to-org-api-url
+     :type "POST"
+     :headers `(("Content-Type" . "application/json")
+                ("Authorization" . ,linear-to-org-api-key))
+     :data (json-encode `(("query" . "query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }")))
+     :parser 'json-read
+     :success #'linear-to-org--handle-response
+     :error #'linear-to-org--handle-error)))
 
 (defun linear-to-org--handle-error (&rest args)
   "Handle error response from Linear API.
@@ -601,7 +600,7 @@ DATA contains the response data."
      :type "POST"
      :headers `(("Content-Type" . "application/json")
                 ("Authorization" . ,linear-to-org-api-key))
-     :data "{\"query\": \"query { viewer { id name } }\"}"
+     :data (json-encode `(("query" . "query { viewer { id name } }")))
      :parser 'json-read
      :complete (cl-function
                 (lambda (&key data response error-thrown &allow-other-keys)
