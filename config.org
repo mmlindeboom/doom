@@ -412,9 +412,7 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   :group 'linear-to-org)
 
 (defvar linear-to-org--query
-  "{
-    \"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"
-  }")
+  "{\"query\": \"query { issues(first: 100) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }\"}")
 
 (defun linear-to-org--make-request ()
   "Make a request to the Linear GraphQL API."
@@ -603,7 +601,7 @@ DATA contains the response data."
      :type "POST"
      :headers `(("Content-Type" . "application/json")
                 ("Authorization" . ,linear-to-org-api-key))
-     :data "{\"query\": \"{ viewer { id name } }\"}"
+     :data "{\"query\": \"query { viewer { id name } }\"}"
      :parser 'json-read
      :complete (cl-function
                 (lambda (&key data response error-thrown &allow-other-keys)
