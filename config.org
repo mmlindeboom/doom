@@ -535,9 +535,9 @@ DATA contains the response data."
                         (alist-get 'name (alist-get 'project issue))))
              (label-nodes (when (alist-get 'labels issue)
                             (alist-get 'nodes (alist-get 'labels issue))))
-             (labels (when (and label-nodes 
-                               (listp label-nodes) 
-                               (not (eq label-nodes [])) 
+             (labels (when (and label-nodes
+                               (listp label-nodes)
+                               (not (eq label-nodes []))
                                (> (length label-nodes) 0))
                        (mapcar (lambda (label)
                                  (alist-get 'name label))
@@ -650,12 +650,12 @@ DATA contains the response data."
                       (message "Got response: %s" (pp-to-string data)))))))))
 
 ;; Add keybindings for Linear to Org
-(map! :leader
-      (:prefix ("ol" . "Linear")
-       :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
-       :desc "Set Linear username" "u" #'linear-to-org-set-username
-       :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
-       :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
+;; (map! :leader
+;;       (:prefix ("ol" . "Linear")
+;;        :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
+;;        :desc "Set Linear username" "u" #'linear-to-org-set-username
+;;        :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
+;;        :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
 #+end_src
 
 #+RESULTS:
