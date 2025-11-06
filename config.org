@@ -4,86 +4,6 @@
 #+property: header-args :tangle yes
 #+auto_tangle: t
 
-* Elpaca - Package Management
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-
-#+begin_src emacs-lisp
-;; (setq package-enable-at-startup nil)
-;; (setq elpaca-ignored-dependencies '(dash))
-;; (defvar elpaca-installer-version 0.10)
-;; (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
-;; (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-;; (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
-;; (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-;; 			      :ref nil
-;; 			      :files (:defaults (:exclude "extensions"))
-;; 			      :build (:not elpaca--activate-package)))
-;; (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
-;;        (build (expand-file-name "elpaca/" elpaca-builds-directory))
-;;        (order (cdr elpaca-order))
-;;        (default-directory repo))
-;;   (add-to-list 'load-path (if (file-exists-p build) build repo))
-;;   (unless (file-exists-p repo)
-;;     (make-directory repo t)
-;;     (when (< emacs-major-version 28) (require 'subr-x))
-;;     (condition-case-unless-debug err
-;;         (if-let ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
-;; 	         ((zerop (call-process "git" nil buffer t "clone"
-;;                                        (plist-get order :repo) repo)))
-;; 	         ((zerop (call-process "git" nil buffer t "checkout"
-;; 				       (or (plist-get order :ref) "--"))))
-;; 	         (emacs (concat invocation-directory invocation-name))
-;; 	         ((zerop (call-process emacs nil buffer nil "-Q" "-L" "." "--batch"
-;; 				       "--eval" "(byte-recompile-directory \".\" 0 'force)")))
-;; 	         ((require 'elpaca))
-;; 	         ((elpaca-generate-autoloads "elpaca" repo)))
-;;             (kill-buffer buffer)
-;;           (error "%s" (with-current-buffer buffer (buffer-string))))
-;;       ((error) (warn "%s" err) (delete-directory repo 'recursive))))
-;;   (unless (require 'elpaca-autoloads nil t)
-;;     (require 'elpaca)
-;;     (elpaca-generate-autoloads "elpaca" repo)
-;;     (load "./elpaca-autoloads")))
-;; (add-hook 'after-init-hook #'elpaca-process-queues)
-;; (elpaca `(,@elpaca-order))
-
-;; ;; Install use-package support
-;; (elpaca elpaca-use-package
-;;   ;; Enable :elpaca use-package keyword.
-;;   (elpaca-use-package-mode)
-;;   ;; Assume :elpaca t unless otherwise specified.
-;;   (setq elpaca-use-package-by-default t))
-
-;; ;; Block until current queue processed.
-;; (elpaca-wait)
-
-;; ;;When installing a package which modifies a form used at the top-level
-;; ;;(e.g. a package which adds a use-package key word),
-;; ;;use `elpaca-wait' to block until that package has been installed/configured.
-;; ;;For example:
-;; ;;(use-package general :demand t)
-;; ;;(elpaca-wait)
-;; ;; Load this before other packages
-;; (elpaca (dash :host github :repo "magnars/dash.el" :main "dash.el")
-;;   (provide 'dash))
-
-;; ;; Continue with other packages
-;; (elpaca-wait)
-;; ;;Turns off elpaca-use-package-mode current declartion
-;; ;;Note this will cause the declaration to be interpreted immediately (not deferred).
-;; ;;Useful for configuring built-in emacs features.
-;; ;;(use-package emacs :elpaca nil :config (setq ring-bell-function #'ignore))
-
-;; ;; Don't install anything. Defer execution of BODY
-;; ;;(elpaca nil (message "deferred"))
-;; ;; Set user information for a personalized Emacs experience
-
-#+end_src
-
-#+RESULTS:
-
 * Personal Information
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle yes
@@ -101,22 +21,25 @@
       doom-theme 'doom-leuven
       display-line-numbers-type t
       )
+(require 'all-the-icons)
 (doom-modeline-mode 1)
-(set-face-background 'mode-line "#8c1eff")
+(setq doom-modeline-icon t)
 (setq doom-modeline-major-mode-color-icon t)
+
+(set-face-background 'mode-line "#8c1eff")
+(set-face-background 'mode-line-inactive "#bfb5c9")
+(set-face-attribute 'mode-line nil :font "FantasqueSansM Nerd Font Mono")
+(set-face-attribute 'mode-line-inactive nil :font "FantasqueSansM Nerd Font Mono")
 #+END_SRC
+
+#+RESULTS:
 
 * Key Bindings
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle yes
 :END:
 #+BEGIN_SRC emacs-lisp
-;; Configure custom key bindings for efficient workflow navigation, including quick access to Org mode's agenda and capture features
-;; (map! :leader
-;;       :desc "Open agenda" "o a" #'org-agenda
-;;       :desc "Capture something" "o c" #'org-capture)
-
-
+;; Reserved for custom key bindings
 #+END_SRC
 
 * Additional Configurations
@@ -137,7 +60,9 @@
 ;;; Dashboard Customization
 (when window-system
   (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
-  (add-hook! '+doom-dashboard-functions :append)
+  (add-hook! '+doom-dashboard-functions :append
+              (defun my-dashboard-widget ()
+                (insert "\n\n")))
   (setq-hook! '+doom-dashboard-mode-hook evil-normal-state-cursor (list nil))
   (setq fancy-splash-image (concat doom-user-dir "biggreenbuddha-614.png"))
   (setq-default line-spacing 0.24)
@@ -151,7 +76,7 @@
     (set-face-foreground face (face-attribute 'default :background)))
   (set-face-background 'fringe (face-attribute 'default :background)))
 ;; Get file icons in dired
-(add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
 #+END_SRC
 * Perspective
 The Perspective package provides multiple named workspaces (or "perspectives") in Emacs, similar to multiple desktops in window managers like Awesome and XMonad.  Each perspective has its own buffer list and its own window layout. This makes it easy to work on many separate projects without getting lost in all the buffers. Switching to a perspective activates its window configuration, and when in a perspective, only its buffers are available.
@@ -229,47 +154,49 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
       :desc "Multi vterm next"       "v ]" #'multi-vterm-next)
 
 (use-package multi-vterm
-	:config
-	(add-hook 'vterm-mode-hook
-			(lambda ()
-			(setq evil-insert-state-cursor 'box)
-			(evil-insert-state)))
-	(define-key vterm-mode-map [return]                      #'vterm-send-return)
+  :config
+  (add-hook 'vterm-mode-hook
+        (lambda ()
+        (setq evil-insert-state-cursor 'box)
+        (evil-insert-state)))
+  (define-key vterm-mode-map [return]                      #'vterm-send-return)
 
-	(setq vterm-keymap-exceptions nil)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-e")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-f")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-a")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-v")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-b")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-w")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-u")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-n")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-m")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-p")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-j")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-k")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-r")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-t")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-g")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-c")      #'vterm--self-insert)
-	(evil-define-key 'insert vterm-mode-map (kbd "C-SPC")    #'vterm--self-insert)
-	(evil-define-key 'normal vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
-	(evil-define-key 'normal vterm-mode-map (kbd ",c")       #'multi-vterm)
-	(evil-define-key 'normal vterm-mode-map (kbd ",n")       #'multi-vterm-next)
-	(evil-define-key 'normal vterm-mode-map (kbd ",p")       #'multi-vterm-prev)
-	(evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
-	(evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
-	(evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
+  (setq vterm-keymap-exceptions nil)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-e")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-f")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-a")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-v")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-b")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-w")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-u")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-n")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-m")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-p")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-j")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-k")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-r")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-t")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-g")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-c")      #'vterm--self-insert)
+  (evil-define-key 'insert vterm-mode-map (kbd "C-SPC")    #'vterm--self-insert)
+  (evil-define-key 'normal vterm-mode-map (kbd "C-d")      #'vterm--self-insert)
+  (evil-define-key 'normal vterm-mode-map (kbd ",c")       #'multi-vterm)
+  (evil-define-key 'normal vterm-mode-map (kbd ",n")       #'multi-vterm-next)
+  (evil-define-key 'normal vterm-mode-map (kbd ",p")       #'multi-vterm-prev)
+  (evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
+  (evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
+  (evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
 
 #+end_src
 * Eglot
 #+BEGIN_SRC emacs-lisp
-;; (use-package! eglot
-;;   :config
-;;   (add-to-list 'eglot-server-programs
-;;                '(python-mode . ("pyright-langserver" "--stdio"))))
+(use-package! eglot
+  :config
+  (add-to-list 'eglot-server-programs
+               '(python-mode . ("pyright-langserver" "--stdio"))
+               '(typescript-mode . ("typescript-language-server"))
+                ))
 #+END_SRC
 
 * Projectile
@@ -282,7 +209,18 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   (projectile-global-mode 1))
 #+END_SRC
 
-* Magit
+* Magit        
+#+begin_src emacs-lisp
+;; workaround for missing transient error: https://github.com/doomemacs/doomemacs/issues/8541
+(let ((lfile (concat doom-local-dir "straight/repos/transient/lisp/transient.el")))
+  (if (file-exists-p lfile)
+      (load lfile)))
+
+#+end_src
+
+#+RESULTS:
+
+
 * Swiper, Ivy, IvyPosFrame
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle yes
@@ -299,25 +237,7 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   (setq enable-recursive-minibuffers t)
   :config
   (ivy-mode))
-;; (use-package all-the-icons-ivy-rich
-;;   :ensure t
-;;   :init (all-the-icons-ivy-rich-mode 1))
-;; (use-package ivy-rich
-;;   :after ivy
-;;   :ensure t
-;;   :init (ivy-rich-mode 1) ;; this gets us descriptions in M-x.
-;;   :custom
-;;   (ivy-virtual-abbreviate 'full
-;;    ivy-rich-switch-buffer-align-virtual-buffer t
-;;    ivy-rich-path-style 'abbrev)
-;;   :config
-;;   (ivy-set-display-transformer 'ivy-switch-buffer
-;;                                'ivy-rich-switch-buffer-transformer))
-;; (require 'ivy)
-;; (require 'counsel)
-;; (require 'swiper)
-;; (require 'ivy-rich)
-;; (require 'all-the-icons-ivy-rich)
+
 (global-set-key (kbd "C-s") 'swiper-isearch)
 (map! :leader
       :desc "Open Swiper" "sw" #'swiper
@@ -328,25 +248,76 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 #+RESULTS:
 : swiper
 
+* Email (Notmuch)
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle yes
+:END:
+
+Configure notmuch for email management. Notmuch provides fast, tag-based email with excellent search capabilities.
+
+#+begin_src emacs-lisp
+(after! notmuch
+  ;; User configuration
+  (setq user-full-name "Matt Lindeboom"
+        user-mail-address "matt@b0om.net")
+
+  ;; Notmuch interface customization
+  (setq notmuch-show-logo nil
+        notmuch-hello-thousands-separator ","
+        notmuch-hello-sections
+        '(notmuch-hello-insert-saved-searches
+          notmuch-hello-insert-search
+          notmuch-hello-insert-recent-searches
+          notmuch-hello-insert-alltags))
+
+  ;; Saved searches for quick access
+  (setq notmuch-saved-searches
+        '((:name "inbox"
+           :query "tag:inbox"
+           :key "i")
+          (:name "unread"
+           :query "tag:unread"
+           :key "u")
+          (:name "flagged"
+           :query "tag:flagged"
+           :key "f")
+          (:name "sent"
+           :query "tag:sent"
+           :key "t")
+          (:name "drafts"
+           :query "tag:draft"
+           :key "d")
+          (:name "all mail"
+           :query "*"
+           :key "a")))
+
+  ;; Send mail settings (using msmtp)
+  (setq message-send-mail-function 'message-send-mail-with-sendmail
+        sendmail-program "/usr/local/bin/msmtp"
+        message-sendmail-extra-arguments '("--read-envelope-from")
+        message-sendmail-f-is-evil t)
+
+  ;; Archive settings
+  (setq notmuch-archive-tags '("-inbox" "+archived")))
+
+;; Sync email using mbsync
+(setq +notmuch-sync-backend 'mbsync)
+
+;; Optional: Add keybindings for common operations
+(map! :leader
+      (:prefix-map ("o m" . "mail")
+       :desc "Open notmuch" "m" #'notmuch
+       :desc "Compose email" "c" #'notmuch-mua-new-mail
+       :desc "Search email" "s" #'notmuch-search
+       :desc "Sync email" "S" #'+notmuch/update))
+#+end_src
+
 * Dev
 :PROPERTIES:
 :header-args:emacs-lisp: :tangle yes
 :END:
 
 #+begin_src emacs-lisp
-(use-package aider
-  :config
-  ;; For latest claude sonnet model
-  (setq aider-args '("--model" "sonnet"))
-  (setenv "ANTHROPIC_API_KEY" "REDACTED_ANTHROPIC_KEY")
-  ;; Or chatgpt model
-  ;; (setq aider-args '("--model" "o3-mini"))
-  ;; (setenv "OPENAI_API_KEY" <your-openai-api-key>)
-  ;; Or use your personal config file
-  ;; (setq aider-args `("--config" ,(expand-file-name "~/.aider.conf.yml")))
-  ;; ;;
-  ;; Optional: Set a key binding for the transient menu
-  (global-set-key (kbd "C-c a") 'aider-transient-menu))
 (use-package python-black
   :demand t
   :after python
@@ -355,234 +326,9 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 (setq tab-width 4)
 #+end_src
 
-* Linear to Org Integration
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-
+* Claude Code
 #+begin_src emacs-lisp
-(use-package! request
-  :defer t)
-
-(defgroup linear-to-org nil
-  "Settings for Linear to Org integration."
-  :group 'tools)
-
-(defcustom linear-to-org-api-key ""
-  "API key for Linear.app."
-  :type 'string
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-target-file (expand-file-name "linear.org" org-directory)
-  "File to store Linear issues as Org TODO items."
-  :type 'file
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-api-url "https://api.linear.app/graphql"
-  "URL for Linear GraphQL API."
-  :type 'string
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-state-mapping
-  '(("Todo" . "TODO")
-    ("In Progress" . "INPROGRESS")
-    ("Done" . "DONE")
-    ("Canceled" . "CANCELLED"))
-  "Mapping from Linear issue states to Org TODO states."
-  :type '(repeat (cons string string))
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-priority-mapping
-  '(("Urgent" . "A")
-    ("High" . "B")
-    ("Medium" . "C")
-    ("Low" . "D"))
-  "Mapping from Linear priority to Org priority."
-  :type '(repeat (cons string string))
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-include-teams t
-  "Whether to include team information in the Org heading."
-  :type 'boolean
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-include-projects t
-  "Whether to include project information in the Org heading."
-  :type 'boolean
-  :group 'linear-to-org)
-
-(defcustom linear-to-org-email "mattlindeboom@unspun.io"
-  "Email to filter Linear issues by assignee."
-  :type 'string
-  :group 'linear-to-org)
-
-(defvar linear-to-org--query
-  "query { issues(first: 10) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }")
-
-(defun linear-to-org--make-request ()
-  "Make a request to the Linear GraphQL API."
-  (unless (string-empty-p linear-to-org-api-key)
-    (message "Sending request to Linear API...")
-    (let ((query (format "query { issues(first: 100, filter: {assignee: {email: {eq: \"%s\"}}}) { nodes { id identifier title description url state { name } priority team { name } project { name } labels { nodes { name } } createdAt updatedAt dueDate assignee { name email } } } }" linear-to-org-email)))
-      (message "Using query: %s" query)
-      (request
-       linear-to-org-api-url
-       :type "POST"
-       :headers `(("Content-Type" . "application/json")
-                  ("Authorization" . ,linear-to-org-api-key))
-       :data (json-encode `(("query" . ,query)))
-       :parser 'json-read
-       :success #'linear-to-org--handle-response
-       :error #'linear-to-org--handle-error))))
-
-(defun linear-to-org--handle-error (&rest args)
-  "Handle error response from Linear API.
-ARGS contains the error details."
-  (let* ((error-data (plist-get args :error-thrown))
-         (response (plist-get args :response))
-         (status-code (request-response-status-code response))
-         (error-msg (request-response-error-thrown response))
-         (data (request-response-data response)))
-    (message "Linear API Error: %s (HTTP %s)" error-msg status-code)
-    (when data
-      (message "Response data: %s" (pp-to-string data)))))
-
-(defun linear-to-org--handle-response (&rest data)
-  "Handle successful response from Linear API.
-DATA contains the response data."
-  (let* ((response-data (request-response-data (plist-get data :response))))
-    (message "Got response from Linear API")
-    (if (and response-data
-             (alist-get 'data response-data)
-             (alist-get 'issues (alist-get 'data response-data))
-             (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data))))
-        (let ((issues (alist-get 'nodes (alist-get 'issues (alist-get 'data response-data)))))
-          (if (and issues (vectorp issues) (> (length issues) 0))
-              (linear-to-org--process-issues issues)
-            (message "No issues found in Linear for email %s" linear-to-org-email)))
-      (if (alist-get 'errors response-data)
-          (message "Linear API returned errors: %s"
-                   (pp-to-string (alist-get 'errors response-data)))
-        (message "No issues found in Linear or unexpected response format: %s"
-                 (pp-to-string response-data))))))
-
-(defun linear-to-org--map-state (state)
-  "Map Linear STATE to Org TODO state."
-  (or (cdr (assoc state linear-to-org-state-mapping)) "TODO"))
-
-(defun linear-to-org--map-priority (priority)
-  "Map Linear PRIORITY to Org priority."
-  (let ((priority-name
-         (pcase priority
-           (0 "No priority")
-           (1 "Urgent")
-           (2 "High")
-           (3 "Medium")
-           (4 "Low")
-           (_ "Unknown"))))
-    (cdr (assoc priority-name linear-to-org-priority-mapping))))
-
-(defun linear-to-org--format-date (date-string)
-  "Format DATE-STRING to Org timestamp format."
-  (when date-string
-    (format-time-string
-     "<%Y-%m-%d %a>"
-     (date-to-time date-string))))
-
-(defun linear-to-org--process-issues (issues)
-  "Process Linear ISSUES and convert them to Org TODO items."
-  (message "Processing %d issues from Linear" (length issues))
-
-  ;; Make sure the org directory exists
-  (unless (file-exists-p org-directory)
-    (make-directory org-directory t))
-
-  ;; Ensure the target file path is absolute
-  (let ((target-file (if (file-name-absolute-p linear-to-org-target-file)
-                         linear-to-org-target-file
-                       (expand-file-name linear-to-org-target-file))))
-
-    (message "Writing Linear issues to %s" target-file)
-
-    (with-current-buffer (find-file-noselect target-file)
-      ;; Clear the file if it exists
-      (erase-buffer)
-
-      ;; Add file header
-      (insert "#+TITLE: Linear Issues\n")
-      (insert "#+AUTHOR: Linear to Org\n")
-      (insert (format "#+DATE: %s\n\n" (format-time-string "<%Y-%m-%d %a>")))
-
-      ;; Add all TODO states to the file
-      (let ((states (mapcar #'cdr linear-to-org-state-mapping)))
-        (insert "#+TODO: " (string-join states " ") "\n\n"))
-
-      ;; Process each issue
-      (dolist (issue issues)
-        (let* ((id (alist-get 'identifier issue))
-               (title (alist-get 'title issue))
-               (state (when (alist-get 'state issue)
-                        (alist-get 'name (alist-get 'state issue))))
-               (org-state (linear-to-org--map-state (or state "Todo"))))
-
-          ;; Create heading with TODO state and just ID and title
-          (insert "* " org-state " " id ": " title "\n\n")))
-
-      ;; Save the buffer
-      (save-buffer)
-      (message "Linear issues imported to %s" target-file))))
-
-(defun linear-to-org-fetch-issues ()
-  "Fetch issues from Linear and convert them to Org TODO items."
-  (interactive)
-  (if (string-empty-p linear-to-org-api-key)
-      (message "Please set linear-to-org-api-key first")
-    (message "Fetching issues from Linear...")
-    (linear-to-org--make-request)))
-
-(defun linear-to-org-set-api-key (key)
-  "Set the Linear API KEY."
-  (interactive "sEnter Linear API key: ")
-  (setq linear-to-org-api-key key)
-  (message "Linear API key set"))
-
-(defun linear-to-org-set-email (email)
-  "Set the Linear EMAIL to filter issues by assignee."
-  (interactive "sEnter Linear email: ")
-  (setq linear-to-org-email email)
-  (message "Linear email set to %s" email))
-
-(setq linear-to-org-api-key "REDACTED_LINEAR_KEY")
-
-;; Add a debug function to help troubleshoot API issues
-(defun linear-to-org-debug-request ()
-  "Make a test request to the Linear API and show the raw response."
-  (interactive)
-  (unless (string-empty-p linear-to-org-api-key)
-    (message "Sending test request to Linear API...")
-    (let ((query "query { viewer { id name } }"))
-      (message "Using query: %s" query)
-      (request
-       linear-to-org-api-url
-       :type "POST"
-       :headers `(("Content-Type" . "application/json")
-                  ("Authorization" . ,linear-to-org-api-key))
-       :data (json-encode `(("query" . ,query)))
-       :parser 'json-read
-       :complete (cl-function
-                  (lambda (&key data response error-thrown &allow-other-keys)
-                    (if error-thrown
-                        (message "Got error: %S" error-thrown)
-                      (message "Got response: %s" (pp-to-string data)))))))))
-
-;; Add keybindings for Linear to Org
-;; (map! :leader
-;;       (:prefix ("ol" . "Linear")
-;;        :desc "Fetch Linear issues" "f" #'linear-to-org-fetch-issues
-;;        :desc "Set Linear email" "e" #'linear-to-org-set-email
-;;        :desc "Set Linear API key" "k" #'linear-to-org-set-api-key
-;;        :desc "Debug Linear API" "d" #'linear-to-org-debug-request))
+(use-package claude-code :ensure t
+  :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
+  :config (claude-code-mode))
 #+end_src
-
-#+RESULTS:
-: linear-to-org-debug-request

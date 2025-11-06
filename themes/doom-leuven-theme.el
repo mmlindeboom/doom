@@ -216,8 +216,8 @@ CONTROL can be a number, nil, or t.  When t, use DEFAULT-HEIGHT."
    (vc-deleted     red)
 
    ;; custom categories
-   (modeline-bg     cyan)
-   (modeline-bg-alt (doom-darken bg-alt 0.1))
+   (modeline-bg     "#8c1eff")
+   (modeline-bg-alt (doom-darken "#e1dce6" 0.1))
    (modeline-fg     '("#85CEEB" "#85CEEB" "white"))
    (modeline-fg-alt '("#F0F0EF" "#F0F0EF" "white"))
 
@@ -242,7 +242,7 @@ CONTROL can be a number, nil, or t.  When t, use DEFAULT-HEIGHT."
    (lazy-highlight :background match :foreground "black" :distant-foreground "black")
    (mode-line
     :background modeline-bg :foreground modeline-fg
-    :box `(:line-width 1 :color "#1A2F54")
+    :box `(:line-width 1 :color "#ff901f")
     :padding (when doom-leuven-padded-modeline
                (if (integerp doom-leuven-padded-modeline) doom-leuven-padded-modeline 4)))
    (mode-line-inactive
@@ -258,7 +258,7 @@ CONTROL can be a number, nil, or t.  When t, use DEFAULT-HEIGHT."
    (css-selector             :foreground blue)
 
    ;;;; doom-modeline
-   (doom-modeline-bar :background blue)
+   (doom-modeline-bar :background "#8c1eff")
 
    ;;;; ediff <built-in>
    (ediff-current-diff-A :background (doom-lighten red 0.8) :foreground red)
@@ -287,8 +287,8 @@ CONTROL can be a number, nil, or t.  When t, use DEFAULT-HEIGHT."
    (isearch-fail :weight 'bold :foreground "black" :background "#FFCCCC")
 
    ;;;; line-number
-   (line-number :foreground "#9A9A9A" :background "#EDEDED")
-   (line-number-current-line :foreground blue :background base1)
+   (line-number :foreground "#3b3245" :background "#e1dce6")
+   (line-number-current-line :foreground "#f222ff" :background "#341c4d")
 
    ;;;; lsp-mode
    (lsp-face-highlight-textual :background base0)

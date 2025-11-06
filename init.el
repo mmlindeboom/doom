@@ -178,7 +178,7 @@
 
        :email
        ;;(mu4e +org +gmail)
-       ;;notmuch
+       (notmuch +org)        ; Fast, tag-based email client
        ;;(wanderlust +gmail)
 
        :app

@@ -1,0 +1,28 @@
+# Aider files
+.aider*
+
+# Generated files (from config.org)
+config.el
+
+# Emacs auto-generated
+custom.el
+
+# Compiled elisp files
+*.elc
+
+# Backup files
+*~
+.#*
+\#*#
+
+# Auto-save files
+.auto-save-list
+
+# Authentication and secrets
+.authinfo*
+secrets.el
+
+# Personal assets (optional - uncomment if you don't want to track)
+# *.png
+# *.jpg
+# *.jpeg
