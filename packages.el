@@ -10,6 +10,8 @@
                                         ;(package! some-package)
 (package! py-isort)
 (package! all-the-icons)
+(package! nerd-icons)
+(package! org-modern)
 (package! perspective)
 (package! mixed-pitch)
 (package! org-appear)

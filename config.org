@@ -4,24 +4,47 @@
 #+property: header-args :tangle yes
 #+auto_tangle: t
 
-* Personal Information
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-;; Set user information for a personalized Emacs experience
+* Bootstrap
+** Workarounds
+#+begin_src emacs-lisp
+;; Workaround for missing transient error: https://github.com/doomemacs/doomemacs/issues/8541
+(let ((lfile (concat doom-local-dir "straight/repos/transient/lisp/transient.el")))
+  (if (file-exists-p lfile)
+      (load lfile)))
+#+end_src
+
+** Personal Information
+#+begin_src emacs-lisp
 (setq user-full-name "Matt Lindeboom"
       user-mail-address "matt@b0om.net")
-#+END_SRC
-* Theme
-#+BEGIN_SRC emacs-lisp
+#+end_src
+
+* Appearance
+** Fonts & Theme
+#+begin_src emacs-lisp
 (setq doom-font (font-spec :family "Dank Mono" :size 16)
       doom-variable-pitch-font (font-spec :family "Vollkorn" :size 18)
       doom-serif-font (font-spec :family "Vollkorn")
       doom-theme 'doom-leuven
-      display-line-numbers-type t
-      )
+      display-line-numbers-type t)
+
+(use-package mixed-pitch
+  :hook (text-mode . mixed-pitch-mode)
+  :config
+  (set-face-attribute 'default nil :font "Dank Mono" :height 150)
+  (set-face-attribute 'fixed-pitch nil :font "Dank Mono")
+  (set-face-attribute 'variable-pitch nil :font "Vollkorn"))
+(add-hook 'mixed-pitch-mode-hook #'solaire-mode-reset)
+#+end_src
+
+** Icons
+#+begin_src emacs-lisp
 (require 'all-the-icons)
+(use-package! nerd-icons)
+#+end_src
+
+** Modeline
+#+begin_src emacs-lisp
 (doom-modeline-mode 1)
 (setq doom-modeline-icon t)
 (setq doom-modeline-major-mode-color-icon t)
@@ -30,39 +53,15 @@
 (set-face-background 'mode-line-inactive "#bfb5c9")
 (set-face-attribute 'mode-line nil :font "FantasqueSansM Nerd Font Mono")
 (set-face-attribute 'mode-line-inactive nil :font "FantasqueSansM Nerd Font Mono")
-#+END_SRC
+#+end_src
 
-#+RESULTS:
-
-* Key Bindings
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-;; Reserved for custom key bindings
-#+END_SRC
-
-* Additional Configurations
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-;; Here, you can add any additional Emacs Lisp configurations that you
-;; find necessary for enhancing your Doom Emacs experience.
-;; This section is reserved for further customizations and extensions.
-#+END_SRC
-
-* Visuals
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-;;; Dashboard Customization
+** Dashboard & Frame
+#+begin_src emacs-lisp
 (when window-system
   (remove-hook '+doom-dashboard-functions #'doom-dashboard-widget-shortmenu)
   (add-hook! '+doom-dashboard-functions :append
-              (defun my-dashboard-widget ()
-                (insert "\n\n")))
+    (defun my-dashboard-widget ()
+      (insert "\n\n")))
   (setq-hook! '+doom-dashboard-mode-hook evil-normal-state-cursor (list nil))
   (setq fancy-splash-image (concat doom-user-dir "biggreenbuddha-614.png"))
   (setq-default line-spacing 0.24)
@@ -75,57 +74,92 @@
     (face-spec-reset-face face)
     (set-face-foreground face (face-attribute 'default :background)))
   (set-face-background 'fringe (face-attribute 'default :background)))
-;; Get file icons in dired
-;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
-#+END_SRC
-* Perspective
-The Perspective package provides multiple named workspaces (or "perspectives") in Emacs, similar to multiple desktops in window managers like Awesome and XMonad.  Each perspective has its own buffer list and its own window layout. This makes it easy to work on many separate projects without getting lost in all the buffers. Switching to a perspective activates its window configuration, and when in a perspective, only its buffers are available.
-#+BEGIN_SRC emacs-lisp
+
+;; Force dashboard on startup
+(setq initial-buffer-choice (lambda () (get-buffer-create "*doom*")))
+#+end_src
+
+* Completion & Search
+Note: Vertico is enabled in init.el. Ivy/Counsel below provides additional search commands.
+
+#+begin_src emacs-lisp
+(use-package counsel
+  :after ivy
+  :config (counsel-mode))
+
+(use-package ivy
+  :custom
+  (setq ivy-use-virtual-buffers t)
+  (setq ivy-count-format "(%d/%d) ")
+  (setq enable-recursive-minibuffers t)
+  :config
+  (ivy-mode))
+
+(global-set-key (kbd "C-s") 'swiper-isearch)
+(map! :leader
+      :desc "Open Swiper" "sw" #'swiper
+      :desc "Open Counsel-rg" "sc" #'counsel-rg)
+#+end_src
+
+* Workspaces & Navigation
+** Perspective
+The Perspective package provides multiple named workspaces (or "perspectives") in Emacs,
+similar to multiple desktops in window managers. Each perspective has its own buffer list
+and window layout.
+
+#+begin_src emacs-lisp
 (use-package perspective
   :bind
-  ("C-x C-b" . persp-list-buffers)   ; or use a nicer switcher, see below
+  ("C-x C-b" . persp-list-buffers)
   :config
   (persp-mode))
+
 (after! persp-mode
-  (setq persp-auto-save-opt 1)          ; Auto-save on close
-  (setq persp-auto-resume-time 1)       ; Resume on load
-  (setq persp-autokill-buffer-on-remove 'kill-weak)
-  (setq persp-save-dir (expand-file-name "workspaces/" doom-local-dir)))
+  (setq persp-auto-save-opt 1
+        persp-auto-resume-time 1
+        persp-autokill-buffer-on-remove 'kill-weak
+        persp-save-dir (expand-file-name "workspaces/" doom-local-dir)))
 
 (map! :leader
       :desc "Switch to perspective NAME"       "DEL" #'persp-switch
-      :desc "Create new persective with NAME"  "p" #'persp-add-new
-      :desc "Switch to buffer in perspective"  "," #'persp-switch-to-buffer
-      :desc "Switch to next perspective"       "]" #'persp-next
-      :desc "Switch to previous perspective"   "[" #'persp-prev
-      :desc "Add a buffer current perspective" "+" #'persp-add-buffer
-      :desc "Remove perspective by name"       "-" #'persp-remove-by-name
+      :desc "Create new perspective with NAME" "p"   #'persp-add-new
+      :desc "Switch to buffer in perspective"  ","   #'persp-switch-to-buffer
+      :desc "Switch to next perspective"       "]"   #'persp-next
+      :desc "Switch to previous perspective"   "["   #'persp-prev
+      :desc "Add a buffer current perspective" "+"   #'persp-add-buffer
+      :desc "Remove perspective by name"       "-"   #'persp-remove-by-name
       :desc "Save state to file"               "s f" #'persp-save-state-to-file)
+#+end_src
 
-  #+END_SRC
+** Projectile
+#+begin_src emacs-lisp
+(use-package projectile
+  :config
+  (projectile-global-mode 1))
+#+end_src
 
 * Org Mode
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-;;; ORG MODE
+** Core Settings
+#+begin_src emacs-lisp
 (setq org-directory "~/org/")
+#+end_src
 
-(use-package mixed-pitch
-    :hook
-    (text-mode . mixed-pitch-mode)
-    :config
-    (set-face-attribute 'default nil :font "Dank Mono" :height 150)
-    (set-face-attribute 'fixed-pitch nil :font "Dank Mono")
-    (set-face-attribute 'variable-pitch nil :font "Vollkorn"))
-(add-hook 'mixed-pitch-mode-hook #'solaire-mode-reset)
-
+** org-appear
+#+begin_src emacs-lisp
 (use-package org-appear
   :hook (org-mode . org-appear-mode))
+#+end_src
 
-#+END_SRC
-* Org-Auto-Tangle
+** org-modern
+#+begin_src emacs-lisp
+(use-package! org-modern
+  :hook (org-mode . org-modern-mode)
+  :config
+  (setq org-modern-star '("◉" "○" "◈" "◇" "✳")
+        org-modern-checkbox '((?X . "☑") (?- . "◧") (?\s . "☐"))))
+#+end_src
+
+** org-auto-tangle
 #+begin_src emacs-lisp
 (use-package! org-auto-tangle
   :defer t
@@ -143,23 +177,22 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
 (map! :leader
       :desc "Insert auto_tangle tag" "i a" #'dt/insert-auto-tangle-tag)
 #+end_src
-* VTerm & Multi-Vterm
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
+
+* Terminal
+** VTerm & Multi-Vterm
 #+begin_src emacs-lisp
 (map! :leader
-      :desc "Vterm popup toggle"     "v t" #'+vterm/toggle
-      :desc "Multi vterm create"     "v m" #'multi-vterm
-      :desc "Multi vterm next"       "v ]" #'multi-vterm-next)
+      :desc "Vterm popup toggle" "v t" #'+vterm/toggle
+      :desc "Multi vterm create" "v m" #'multi-vterm
+      :desc "Multi vterm next"   "v ]" #'multi-vterm-next)
 
 (use-package multi-vterm
   :config
   (add-hook 'vterm-mode-hook
-        (lambda ()
-        (setq evil-insert-state-cursor 'box)
-        (evil-insert-state)))
-  (define-key vterm-mode-map [return]                      #'vterm-send-return)
+            (lambda ()
+              (setq evil-insert-state-cursor 'box)
+              (evil-insert-state)))
+  (define-key vterm-mode-map [return] #'vterm-send-return)
 
   (setq vterm-keymap-exceptions nil)
   (evil-define-key 'insert vterm-mode-map (kbd "C-e")      #'vterm--self-insert)
@@ -187,136 +220,19 @@ The Perspective package provides multiple named workspaces (or "perspectives") i
   (evil-define-key 'normal vterm-mode-map (kbd "i")        #'evil-insert-resume)
   (evil-define-key 'normal vterm-mode-map (kbd "o")        #'evil-insert-resume)
   (evil-define-key 'normal vterm-mode-map (kbd "<return>") #'evil-insert-resume))
-
 #+end_src
-* Eglot
-#+BEGIN_SRC emacs-lisp
+
+* Programming
+** LSP (Eglot)
+#+begin_src emacs-lisp
 (use-package! eglot
   :config
   (add-to-list 'eglot-server-programs
                '(python-mode . ("pyright-langserver" "--stdio"))
-               '(typescript-mode . ("typescript-language-server"))
-                ))
-#+END_SRC
-
-* Projectile
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-#+BEGIN_SRC emacs-lisp
-(use-package projectile
-  :config
-  (projectile-global-mode 1))
-#+END_SRC
-
-* Magit        
-#+begin_src emacs-lisp
-;; workaround for missing transient error: https://github.com/doomemacs/doomemacs/issues/8541
-(let ((lfile (concat doom-local-dir "straight/repos/transient/lisp/transient.el")))
-  (if (file-exists-p lfile)
-      (load lfile)))
-
+               '(typescript-mode . ("typescript-language-server"))))
 #+end_src
 
-#+RESULTS:
-
-
-* Swiper, Ivy, IvyPosFrame
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-
-#+begin_src emacs-lisp
-(use-package counsel
-  :after ivy
-  :config (counsel-mode))
-(use-package ivy
-  :custom
-  (setq ivy-use-virtual-buffers t)
-  (setq ivy-count-format "(%d/%d) ")
-  (setq enable-recursive-minibuffers t)
-  :config
-  (ivy-mode))
-
-(global-set-key (kbd "C-s") 'swiper-isearch)
-(map! :leader
-      :desc "Open Swiper" "sw" #'swiper
-      :desc "Open Counsel-rg" "sc" #'counsel-rg)
-
-#+end_src
-
-#+RESULTS:
-: swiper
-
-* Email (Notmuch)
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-
-Configure notmuch for email management. Notmuch provides fast, tag-based email with excellent search capabilities.
-
-#+begin_src emacs-lisp
-(after! notmuch
-  ;; User configuration
-  (setq user-full-name "Matt Lindeboom"
-        user-mail-address "matt@b0om.net")
-
-  ;; Notmuch interface customization
-  (setq notmuch-show-logo nil
-        notmuch-hello-thousands-separator ","
-        notmuch-hello-sections
-        '(notmuch-hello-insert-saved-searches
-          notmuch-hello-insert-search
-          notmuch-hello-insert-recent-searches
-          notmuch-hello-insert-alltags))
-
-  ;; Saved searches for quick access
-  (setq notmuch-saved-searches
-        '((:name "inbox"
-           :query "tag:inbox"
-           :key "i")
-          (:name "unread"
-           :query "tag:unread"
-           :key "u")
-          (:name "flagged"
-           :query "tag:flagged"
-           :key "f")
-          (:name "sent"
-           :query "tag:sent"
-           :key "t")
-          (:name "drafts"
-           :query "tag:draft"
-           :key "d")
-          (:name "all mail"
-           :query "*"
-           :key "a")))
-
-  ;; Send mail settings (using msmtp)
-  (setq message-send-mail-function 'message-send-mail-with-sendmail
-        sendmail-program "/usr/local/bin/msmtp"
-        message-sendmail-extra-arguments '("--read-envelope-from")
-        message-sendmail-f-is-evil t)
-
-  ;; Archive settings
-  (setq notmuch-archive-tags '("-inbox" "+archived")))
-
-;; Sync email using mbsync
-(setq +notmuch-sync-backend 'mbsync)
-
-;; Optional: Add keybindings for common operations
-(map! :leader
-      (:prefix-map ("o m" . "mail")
-       :desc "Open notmuch" "m" #'notmuch
-       :desc "Compose email" "c" #'notmuch-mua-new-mail
-       :desc "Search email" "s" #'notmuch-search
-       :desc "Sync email" "S" #'+notmuch/update))
-#+end_src
-
-* Dev
-:PROPERTIES:
-:header-args:emacs-lisp: :tangle yes
-:END:
-
+** Python
 #+begin_src emacs-lisp
 (use-package python-black
   :demand t
@@ -326,7 +242,50 @@ Configure notmuch for email management. Notmuch provides fast, tag-based email w
 (setq tab-width 4)
 #+end_src
 
-* Claude Code
+* Email
+** Notmuch
+Notmuch provides fast, tag-based email with excellent search capabilities.
+
+#+begin_src emacs-lisp
+(after! notmuch
+  (setq user-full-name "Matt Lindeboom"
+        user-mail-address "matt@b0om.net")
+
+  (setq notmuch-show-logo nil
+        notmuch-hello-thousands-separator ","
+        notmuch-hello-sections
+        '(notmuch-hello-insert-saved-searches
+          notmuch-hello-insert-search
+          notmuch-hello-insert-recent-searches
+          notmuch-hello-insert-alltags))
+
+  (setq notmuch-saved-searches
+        '((:name "inbox"    :query "tag:inbox"   :key "i")
+          (:name "unread"   :query "tag:unread"  :key "u")
+          (:name "flagged"  :query "tag:flagged" :key "f")
+          (:name "sent"     :query "tag:sent"    :key "t")
+          (:name "drafts"   :query "tag:draft"   :key "d")
+          (:name "all mail" :query "*"           :key "a")))
+
+  (setq message-send-mail-function 'message-send-mail-with-sendmail
+        sendmail-program "/usr/local/bin/msmtp"
+        message-sendmail-extra-arguments '("--read-envelope-from")
+        message-sendmail-f-is-evil t)
+
+  (setq notmuch-archive-tags '("-inbox" "+archived")))
+
+(setq +notmuch-sync-backend 'mbsync)
+
+(map! :leader
+      (:prefix-map ("o m" . "mail")
+       :desc "Open notmuch"  "m" #'notmuch
+       :desc "Compose email" "c" #'notmuch-mua-new-mail
+       :desc "Search email"  "s" #'notmuch-search
+       :desc "Sync email"    "S" #'+notmuch/update))
+#+end_src
+
+* AI Tools
+** Claude Code
 #+begin_src emacs-lisp
 (use-package claude-code :ensure t
   :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
